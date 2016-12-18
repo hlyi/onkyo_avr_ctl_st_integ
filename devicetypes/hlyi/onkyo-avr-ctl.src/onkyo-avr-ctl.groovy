@@ -128,56 +128,56 @@ def unmute()
 
 def selDvd()
 {
-	log.debug("Select DVD")
+//	log.debug("Select DVD")
 	sendCommand("SLI10")
 	sendEvent(name:"input", value: "dvd" )
 }
 
 def selCable()
 {
-	log.debug("Select Cable")
+//	log.debug("Select Cable")
 	sendCommand("SLI01")
 	sendEvent(name:"input", value: "cable" )
 }
 
 def selGame()
 {
-	log.debug("Select Game")
+//	log.debug("Select Game")
 	sendCommand("SLI02")
 	sendEvent(name:"input", value: "game" )
 }
 
 def selPc()
 {
-	log.debug("Select PC")
+//	log.debug("Select PC")
 	sendCommand("SLI05")
 	sendEvent(name:"input", value: "pc" )
 }
 
 def selAux()
 {
-	log.debug("Select AUX")
+//	log.debug("Select AUX")
 	sendCommand("SLI03")
 	sendEvent(name:"input", value: "aux" )
 }
 
 def selTv()
 {
-	log.debug("Select Tv")
+//	log.debug("Select Tv")
 	sendCommand("SLI23")
 	sendEvent(name:"input", value: "tv" )
 }
 
 def selNet()
 {
-	log.debug("Select Net")
+//	log.debug("Select Net")
 	sendCommand("SLI2B")
 	sendEvent(name:"input", value: "net" )
 }
 
 def hubActionCallback(response)
 {
-	//log.debug(response)
+//	log.debug(response)
 	
 	def status = response?.headers["x-srtb-status"] ?: ""
 	if (status != "Ok") {
@@ -186,11 +186,11 @@ def hubActionCallback(response)
 	}
 	def retstr = response?.body
 	if ( retstr == '' ) return
-	log.debug("Return Str: " + retstr)
+//	log.debug("Return Str: " + retstr)
 	def bytes = retstr.decodeBase64()
     def size = bytes.size()
     def ofst = 0
-//    while (true){
+    while (true){
     	if ( (ofst +18 ) > size ) {
     	    log.debug("Return message too short " + ofst + ", " + size)
 			return
@@ -203,25 +203,31 @@ def hubActionCallback(response)
 			log.debug("Wrong return signature command: " + bytes[ofst+16] + bytes[ofst+17])
 			return	
 		}
-		def int len = (bytes[ofst+8]<<24) + (bytes[ofst+9]<<16) + (bytes[ofst+10]<<8) + bytes[ofst+11]
+		def int len = ((bytes[ofst+8] & 0xff)<<24) + ( (bytes[ofst+9]&0xff)<<16) + ( (bytes[ofst+10]&0xff)<<8) + (bytes[ofst+11] & 0xff)
         if ( len < 3 ) {
         	log.debug ("Data size is too short " + len )
             return
         }
-		if ( (ofst + len ) > size ) {
+		if ( (ofst + len + 16 ) > size ) {
     	    log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
 			return        
         }
-        def msg = ''
-        for (def i = ofst + 18; i < ofst+len; i++) {
-        	def tmpchar = bytes[ofst + i]
-            if ( (tmpchar == 0x1a ) || (tmpchar == 0x0d) || (tmpchar == 0x0a)) break
-            msg += tmpchar
+        def int j = 0 
+//        log.debug("Len = " + len + ", Ofst = " + ofst)
+        for (j = ofst +len + 15 ; j > ofst+18; j--) {
+        	def tmpchar = bytes[j]
+            if ( (tmpchar != 0x1a ) && (tmpchar != 0x0d) && (tmpchar != 0x0a)) break
         }
-		log.debug("Recved: " + msg)
-        ofst += len
-//        if ( ofst >= size ) break
-//	}
+        def msg = new byte[j-ofst-17]
+        for ( def i =  0; i < j-ofst-17 ; i++ ) {
+        	msg[i] = bytes[i+ofst+18]
+        }
+		def cmdstr = new String(msg)
+		log.debug("Recved: " + cmdstr)
+        ofst += len + 16
+//        log.debug ("new offset" + ofst)
+        if ( ofst >= size ) break
+	}
 /*
 	if ( bytes.size() < 21 ) {
 		
@@ -278,7 +284,7 @@ private buildCommand(cmd)
 private sendCommandToAvr(command)
 {
 //	def data = command.encodeBase64()
-	log.debug("Sending: " + command)
+//	log.debug("Sending: " + command)
 	def bridgeIPHex = convertIPtoHex(bridgeIP)
 	def bridgePortHex = convertPortToHex(bridgePort)
 	def deviceNetworkId = "$bridgeIPHex:$bridgePortHex"
