@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *	  http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -20,6 +20,8 @@ metadata
 	definition (name: "onkyo_avr_ctl", namespace: "hlyi", author: "H. Yi") {
 		capability "Switch"
 		capability "Music Player"
+        capability "refresh"
+        capability "Switch Level"
 		command "selDvd"
 		command "selCable"
 		command "selGame"
@@ -27,8 +29,11 @@ metadata
 		command "selAux"
 		command "selTv"
 		command "selNet"
+        command "getVolLvl"
+        command "getInSel"
 		command "z2on"
 		command "z2off"
+        command "setVolume"
 	}
 
 	simulator {
@@ -72,13 +77,16 @@ metadata
 			state "net", label: 'net', action: "selNet", icon:"st.Electronics.electronics2", backgroundColor:"#04eff6"
 			state "default", label: 'net', action: "selNet", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
 			}
-		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 3, inactiveLabel: false, range:"(0..80)") {
-			state "level", label:'${currentValue}', action:"setLevel", backgroundColor:"#ffffff"
+		controlTile("volumeControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..80)") {
+			state "level", label:'${currentValue}', action:"switch level.setLevel", backgroundColor:"#ffffff"
 			}
 		standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state "off", label:"Enable Zone 2", action:"z2on", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"on"
 			state "on", label:"Disable Zone 2", action:"z2off", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"off"
 			}
+		standardTile("refresh", "capability.refresh", width: 1, height: 1, decoration: "flat") {
+			state ("default", label:"Refresh", action:"refresh.refresh", icon:"st.secondary.refresh")
+		}            
 		/*   Commenting this out as it doesn't work yet
 		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
 			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
@@ -88,7 +96,7 @@ metadata
 
 	
 	main "switch"
-	details(["switch","mute","dvd","cable","game","pc","aux","tv", "net", "levelSliderControl","zone2"])
+	details(["switch","volumeControl", "refresh", "mute","dvd","cable","game","pc","aux","tv", "net","zone2"])
 }
 
 preferences
@@ -103,6 +111,30 @@ def parse(desc)
 	log.debug("Parse Message: " + desc)
 }
 
+def refresh()
+{
+	sendCommand("PWRQSTN")
+    runIn(1, getVolLvl)
+    runIn(2, getInSel)
+}
+
+def getVolLvl()
+{
+	sendCommand("MVLQSTN")
+}
+
+def getInSel()
+{
+	sendCommand("SLIQSTN")
+}
+
+def setLevel (lvl)
+{
+	def cmd = "MVL" + ''.format("%02X", lvl)
+	sendCommand(cmd)
+}
+
+
 def on()
 {
 	sendCommand("PWR01")
@@ -113,7 +145,7 @@ def off()
 {
 	sendCommand("PWR00")
 	sendEvent(name:"switch", value: "off")
-	sendEvent(name:"input", value: "default")
+    sendEvent(name:"input", value: "default")
 }
 
 def mute()
@@ -178,22 +210,23 @@ def selNet()
 def hubActionCallback(response)
 {
 //	log.debug(response)
+	
 	def status = response?.headers["x-srtb-status"] ?: ""
 	if (status != "Ok") {
 		log.debug("Reponse error: " + status)
 		return
 	}
 	def retstr = response?.body
-	if ( retstr == '' ) return
+	if ( ! retstr || retstr == '' ) return
 //	log.debug("Return Str: " + retstr)
 	def bytes = retstr.decodeBase64()
-	def size = bytes.size()
-	def ofst = 0
-	while (true){
-		if ( (ofst +18 ) > size ) {
-			log.debug("Return message too short " + ofst + ", " + size)
+    def size = bytes.size()
+    def ofst = 0
+    while (true){
+    	if ( (ofst +18 ) > size ) {
+    	    log.debug("Return message too short " + ofst + ", " + size)
 			return
-		}
+        }
 		if ( bytes[ofst] != 0x49 || bytes[ofst+1] != 0x53 || bytes[ofst+2] != 0x43 || bytes[ofst+3] != 0x50){
 			log.debug("Wrong return signature header: " + bytes[ofst] + bytes[ofst+1] + bytes[ofst+2] + bytes[ofst+3])
 			return	
@@ -203,30 +236,58 @@ def hubActionCallback(response)
 			return	
 		}
 		def int len = ((bytes[ofst+8] & 0xff)<<24) + ( (bytes[ofst+9]&0xff)<<16) + ( (bytes[ofst+10]&0xff)<<8) + (bytes[ofst+11] & 0xff)
-		if ( len < 3 ) {
-			log.debug ("Data size is too short " + len )
-			return
-		}
+        if ( len < 3 ) {
+        	log.debug ("Data size is too short " + len )
+            return
+        }
 		if ( (ofst + len + 16 ) > size ) {
-			log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
-			return		
-		}
-		def int j = 0 
-//		log.debug("Len = " + len + ", Ofst = " + ofst)
-		for (j = ofst +len + 15 ; j > ofst+18; j--) {
-			def tmpchar = bytes[j]
-			if ( (tmpchar != 0x1a ) && (tmpchar != 0x0d) && (tmpchar != 0x0a)) break
-		}
-		def msg = new byte[j-ofst-17]
-		for ( def i = 0; i < j-ofst-17 ; i++ ) {
-			msg[i] = bytes[i+ofst+18]
-		}
+    	    log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
+			return        
+        }
+        def int j = 0 
+//        log.debug("Len = " + len + ", Ofst = " + ofst)
+        for (j = ofst +len + 15 ; j > ofst+18; j--) {
+        	def tmpchar = bytes[j]
+            if ( (tmpchar != 0x1a ) && (tmpchar != 0x0d) && (tmpchar != 0x0a)) break
+        }
+        def msg = new byte[j-ofst-17]
+        for ( def i =  0; i < j-ofst-17 ; i++ ) {
+        	msg[i] = bytes[i+ofst+18]
+        }
 		def cmdstr = new String(msg)
-		log.debug("Recved: " + cmdstr)
-		ofst += len + 16
-//		log.debug ("new offset" + ofst)
-		if ( ofst >= size ) break
+//		log.debug("Recved: " + cmdstr)
+        switch (cmdstr ) {
+            case "NLSC-P" :
+            	// don't know why rcv keep sending this, ignore it
+                break
+        	case "PWR00" :
+            	sendEvent(name:"switch", value: "off")
+                break
+            case "PWR01" :
+            	sendEvent(name:"switch", value: "on")
+                break
+            case ~/^MVL.*/ :
+            	def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
+                sendEvent(name: "level", value: lvl, isStateChange: true)
+                break
+            default :
+            	log.debug("Ignored cmd: " + cmdstr)
+                break
+        }
+        ofst += len + 16
+//        log.debug ("new offset" + ofst)
+        if ( ofst >= size ) break
 	}
+/*
+	if ( bytes.size() < 21 ) {
+		
+	}
+	def int len = bytes[11] - 3
+	def cmdbytes = new byte[len]
+	for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
+	def cmdstr = new String(cmdbytes)
+	log.debug("Return CMD: " + cmdstr)
+*/
 }
 
 
@@ -283,7 +344,7 @@ private sendCommandToAvr(command)
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
 	headers.put("x-srtb-timeout", ".1")
-	headers.put("x-srtb-repeat", 7)
+	headers.put("x-srtb-repeat", 5)
 	headers.put("x-srtb-data", command)
 	try {
 		sendHubCommand(new physicalgraph.device.HubAction([
