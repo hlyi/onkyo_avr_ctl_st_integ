@@ -42,22 +42,35 @@ metadata
 			state "unmuted", label:"mute", action:"mute", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"muted"
 			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#f6ef04", nextState:"unmuted"
 			}
-		standardTile("cable", "device.switch", decoration: "flat"){
-			state "cable", label: 'cable', action: "cable", icon:"st.Electronics.electronics3"
+		standardTile("dvd", "device.input", decoration: "flat"){
+			state "dvd", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#04eff6"
+			state "default", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("stb", "device.switch", decoration: "flat"){
-			state "stb", label: 'shield', action: "stb", icon:"st.Electronics.electronics5"
+		standardTile("cable", "device.input", decoration: "flat"){
+			state "cable", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
+			state "default", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("pc", "device.switch", decoration: "flat"){
-			state "pc", label: 'pc', action: "pc", icon:"st.Electronics.electronics18"
+		standardTile("game", "device.input", decoration: "flat"){
+			state "game", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
+			state "default", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("net", "device.switch", decoration: "flat"){
-			state "net", label: 'net', action: "net", icon:"st.Electronics.electronics2"
+		standardTile("pc", "device.input", decoration: "flat"){
+			state "pc", label: 'pc', action: "selPc", icon:"st.Electronics.electronics18", backgroundColor:"#04eff6"
+			state "default", label: 'pc', action: "selPc", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("aux", "device.switch", decoration: "flat"){
-			state "aux", label: 'aux', action: "aux", icon:"st.Electronics.electronics6"
+		standardTile("aux", "device.input", decoration: "flat"){
+			state "aux", label: 'aux', action: "selAux", icon:"st.Electronics.electronics6", backgroundColor:"#04eff6"
+			state "default", label: 'aux', action: "selAux", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
 			}
-		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..80)") {
+		standardTile("tv", "device.input", decoration: "flat"){
+			state "tv", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#04eff6"
+			state "default", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
+			}
+		standardTile("net", "device.input", decoration: "flat"){
+			state "net", label: 'net', action: "selNet", icon:"st.Electronics.electronics2", backgroundColor:"#04eff6"
+			state "default", label: 'net', action: "selNet", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
+			}
+		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 3, inactiveLabel: false, range:"(0..80)") {
 			state "level", label:'${currentValue}', action:"setLevel", backgroundColor:"#ffffff"
 			}
 		standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
@@ -108,6 +121,48 @@ def mute()
 def unmute()
 {
 	sendCommand("AMT00")
+}
+
+def selDvd()
+{
+	sendCommand("SLI10")
+	sendEvent(name:"input", value: "dvd" )
+}
+
+def selCable()
+{
+	sendCommand("SLI01")
+	sendEvent(name:"input", value: "cable" )
+}
+
+def selGame()
+{
+	sendCommand("SLI02")
+	sendEvent(name:"input", value: "game" )
+}
+
+def selPc()
+{
+	sendCommand("SLI05")
+	sendEvent(name:"input", value: "pc" )
+}
+
+def selAux()
+{
+	sendCommand("SLI03")
+	sendEvent(name:"input", value: "aux" )
+}
+
+def selTv()
+{
+	sendCommand("SLI23")
+	sendEvent(name:"input", value: "tv" )
+}
+
+def selNet()
+{
+	sendCommand("SLI2B")
+	sendEvent(name:"input", value: "net" )
 }
 
 def hubActionCallback(response)
@@ -196,7 +251,7 @@ private sendCommandToAvr(command)
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
 	headers.put("x-srtb-timeout", ".2")
-	headers.put("x-srtb-repeat", 5)
+	headers.put("x-srtb-repeat", 6)
 	headers.put("x-srtb-data", command)
 	try {
 		sendHubCommand(new physicalgraph.device.HubAction([
