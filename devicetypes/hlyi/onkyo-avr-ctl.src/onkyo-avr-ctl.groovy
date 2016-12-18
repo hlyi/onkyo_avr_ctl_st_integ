@@ -152,13 +152,13 @@ def off()
 def mute()
 {
 	sendCommand("AMT01")
-	sendEvent(name: "switch", value "mute")
+	sendEvent(name: "switch", value: "mute")
 }
 
 def unmute()
 {
 	sendCommand("AMT00")
-	sendEvent(name: "switch", value "unmute")
+	sendEvent(name: "switch", value: "unmute")
 }
 
 def selDvd()
