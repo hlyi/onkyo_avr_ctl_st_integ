@@ -35,37 +35,37 @@ metadata
 
 	tiles {
 		standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
-                	state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
-                	state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
-   	   		}
-                standardTile("mute", "device.switch", inactiveLabel: false, decoration: "flat") {
+			state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
+			state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
+			}
+		standardTile("mute", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state "unmuted", label:"mute", action:"mute", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"muted"
 			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"unmuted"
-                	}
-                standardTile("cable", "device.switch", decoration: "flat"){
-                	state "cable", label: 'cable', action: "cable", icon:"st.Electronics.electronics3"
-                	}
-                standardTile("stb", "device.switch", decoration: "flat"){
-                	state "stb", label: 'shield', action: "stb", icon:"st.Electronics.electronics5"
-                	}
-                standardTile("pc", "device.switch", decoration: "flat"){
-                	state "pc", label: 'pc', action: "pc", icon:"st.Electronics.electronics18"
-                	}
-                standardTile("net", "device.switch", decoration: "flat"){
-                	state "net", label: 'net', action: "net", icon:"st.Electronics.electronics2"
-                	}
-                standardTile("aux", "device.switch", decoration: "flat"){
-                	state "aux", label: 'aux', action: "aux", icon:"st.Electronics.electronics6"
-                	}
+			}
+		standardTile("cable", "device.switch", decoration: "flat"){
+			state "cable", label: 'cable', action: "cable", icon:"st.Electronics.electronics3"
+			}
+		standardTile("stb", "device.switch", decoration: "flat"){
+			state "stb", label: 'shield', action: "stb", icon:"st.Electronics.electronics5"
+			}
+		standardTile("pc", "device.switch", decoration: "flat"){
+			state "pc", label: 'pc', action: "pc", icon:"st.Electronics.electronics18"
+			}
+		standardTile("net", "device.switch", decoration: "flat"){
+			state "net", label: 'net', action: "net", icon:"st.Electronics.electronics2"
+			}
+		standardTile("aux", "device.switch", decoration: "flat"){
+			state "aux", label: 'aux', action: "aux", icon:"st.Electronics.electronics6"
+			}
 		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..70)") {
 			state "level", label:'${currentValue}', action:"setLevel", backgroundColor:"#ffffff"
 			}
-                standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
+		standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state "off", label:"Enable Zone 2", action:"z2on", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"on"
 			state "on", label:"Disable Zone 2", action:"z2off", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"off"
-                	}
-                /*   Commenting this out as it doesn't work yet     
-                valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
+			}
+		/*   Commenting this out as it doesn't work yet     
+		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
 			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
 			}
 		*/
@@ -90,13 +90,13 @@ def parse(desc)
 
 def on()
 {
-	buildCommand("PWR01")
+	sendCommand("PWR01")
 	sendEvent(name:"switch", value: "on")
 }
 
 def off()
 {
-	buildCommand("PWR00")
+	sendCommand("PWR00")
 	sendEvent(name:"switch", value: "off")
 }
 
@@ -124,6 +124,12 @@ def hubActionCallback(response)
 */
 }
 
+
+private sendCommand(cmd)
+{
+	sendCommandToAvr(buildCommand(cmd))
+}
+
 private buildCommand(cmd)
 {
 	def cmdbuf = new byte[cmd.length()+20]
@@ -132,7 +138,7 @@ private buildCommand(cmd)
 	cmdbuf[idx++] = 0x49 // 'I'
 	cmdbuf[idx++] = 0x53 // 'S'
 	cmdbuf[idx++] = 0x43 // 'C'
-	cmdbuf[idx++] = 0x50 //  'P'
+	cmdbuf[idx++] = 0x50 //	'P'
 	cmdbuf[idx++] = len >>24
 	cmdbuf[idx++] = (len>>16 ) & 0xff
 	cmdbuf[idx++] = (len>>8 ) & 0xff
@@ -146,15 +152,15 @@ private buildCommand(cmd)
 	cmdbuf[idx++] = 0
 	cmdbuf[idx++] = 0
 	cmdbuf[idx++] = 0
-	cmdbuf[idx++] = 0x21 // '!'
-	cmdbuf[idx++] = 0x31 // '1'
+	cmdbuf[idx++] = 0x21 //	'!'
+	cmdbuf[idx++] = 0x31 //	'1'
 
 	def strbytes = cmd.getBytes()
 	for (def i= 0; i < strbytes.size();i++) cmdbuf[idx++] = strbytes[i]
 	cmdbuf[idx++] = 0x0d
 	cmdbuf[idx++] = 0x0a
 //	log.debug ("ECODE: " + cmdbuf.collect{ String.format('%02x', it )}.join(',') )
-	sendCommandToAvr(cmdbuf.encodeBase64())
+	return cmdbuf.encodeBase64()
 }
 
 private sendCommandToAvr(command)
