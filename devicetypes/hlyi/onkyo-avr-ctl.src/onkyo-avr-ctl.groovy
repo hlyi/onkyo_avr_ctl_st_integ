@@ -20,11 +20,13 @@ metadata
 	definition (name: "onkyo_avr_ctl", namespace: "hlyi", author: "H. Yi") {
 		capability "Switch"
 		capability "Music Player"
-		command "cable"
-		command "stb"
-		command "pc"
-		command "net"
-		command "aux"
+		command "selDvd"
+		command "selCable"
+		command "selGame"
+		command "selPc"
+		command "selAux"
+		command "selTv"
+		command "selNet"
 		command "z2on"
 		command "z2off"
 	}
@@ -86,7 +88,7 @@ metadata
 
 	
 	main "switch"
-	details(["switch","mute","cable","stb","pc","net","aux","levelSliderControl","zone2"])
+	details(["switch","mute","dvd","cable","game","pc","aux","tv", "net", "levelSliderControl","zone2"])
 }
 
 preferences
@@ -111,6 +113,7 @@ def off()
 {
 	sendCommand("PWR00")
 	sendEvent(name:"switch", value: "off")
+    sendEvent(name:"input", value: "default")
 }
 
 def mute()
@@ -125,42 +128,49 @@ def unmute()
 
 def selDvd()
 {
+	log.debug("Select DVD")
 	sendCommand("SLI10")
 	sendEvent(name:"input", value: "dvd" )
 }
 
 def selCable()
 {
+	log.debug("Select Cable")
 	sendCommand("SLI01")
 	sendEvent(name:"input", value: "cable" )
 }
 
 def selGame()
 {
+	log.debug("Select Game")
 	sendCommand("SLI02")
 	sendEvent(name:"input", value: "game" )
 }
 
 def selPc()
 {
+	log.debug("Select PC")
 	sendCommand("SLI05")
 	sendEvent(name:"input", value: "pc" )
 }
 
 def selAux()
 {
+	log.debug("Select AUX")
 	sendCommand("SLI03")
 	sendEvent(name:"input", value: "aux" )
 }
 
 def selTv()
 {
+	log.debug("Select Tv")
 	sendCommand("SLI23")
 	sendEvent(name:"input", value: "tv" )
 }
 
 def selNet()
 {
+	log.debug("Select Net")
 	sendCommand("SLI2B")
 	sendEvent(name:"input", value: "net" )
 }
@@ -178,23 +188,50 @@ def hubActionCallback(response)
 	if ( retstr == '' ) return
 	log.debug("Return Str: " + retstr)
 	def bytes = retstr.decodeBase64()
+    def size = bytes.size()
+    def ofst = 0
+//    while (true){
+    	if ( (ofst +18 ) > size ) {
+    	    log.debug("Return message too short " + ofst + ", " + size)
+			return
+        }
+		if ( bytes[ofst] != 0x49 || bytes[ofst+1] != 0x53 || bytes[ofst+2] != 0x43 || bytes[ofst+3] != 0x50){
+			log.debug("Wrong return signature header: " + bytes[ofst] + bytes[ofst+1] + bytes[ofst+2] + bytes[ofst+3])
+			return	
+		}
+		if ( bytes[ofst+16] != 0x21 || bytes[ofst+17] != 0x31){
+			log.debug("Wrong return signature command: " + bytes[ofst+16] + bytes[ofst+17])
+			return	
+		}
+		def int len = (bytes[ofst+8]<<24) + (bytes[ofst+9]<<16) + (bytes[ofst+10]<<8) + bytes[ofst+11]
+        if ( len < 3 ) {
+        	log.debug ("Data size is too short " + len )
+            return
+        }
+		if ( (ofst + len ) > size ) {
+    	    log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
+			return        
+        }
+        def msg = ''
+        for (def i = ofst + 18; i < ofst+len; i++) {
+        	def tmpchar = bytes[ofst + i]
+            if ( (tmpchar == 0x1a ) || (tmpchar == 0x0d) || (tmpchar == 0x0a)) break
+            msg += tmpchar
+        }
+		log.debug("Recved: " + msg)
+        ofst += len
+//        if ( ofst >= size ) break
+//	}
+/*
 	if ( bytes.size() < 21 ) {
-		log.debug("Return message too short " + bytes.size())
-		return
-	}
-	if ( bytes[0] != 0x49 || bytes[1] != 0x53 || bytes[2] != 0x43 || bytes[3] != 0x50){
-		log.debug("Wrong return signature header: " + bytes[0] + bytes[1] + bytes[2] + bytes[3])
-		return	
-	}
-	if ( bytes[16] != 0x21 || bytes[17] != 0x31){
-		log.debug("Wrong return signature command: " + bytes[16] + bytes[17])
-		return	
+		
 	}
 	def int len = bytes[11] - 3
 	def cmdbytes = new byte[len]
 	for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
 	def cmdstr = new String(cmdbytes)
 	log.debug("Return CMD: " + cmdstr)
+*/
 }
 
 
@@ -250,8 +287,8 @@ private sendCommandToAvr(command)
 	headers.put("HOST", "$bridgeIP:$bridgePort")	
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
-	headers.put("x-srtb-timeout", ".2")
-	headers.put("x-srtb-repeat", 6)
+	headers.put("x-srtb-timeout", ".1")
+	headers.put("x-srtb-repeat", 7)
 	headers.put("x-srtb-data", command)
 	try {
 		sendHubCommand(new physicalgraph.device.HubAction([
