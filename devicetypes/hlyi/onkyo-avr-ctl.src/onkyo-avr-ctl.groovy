@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *	  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -20,8 +20,8 @@ metadata
 	definition (name: "onkyo_avr_ctl", namespace: "hlyi", author: "H. Yi") {
 		capability "Switch"
 		capability "Music Player"
-        capability "refresh"
-        capability "Switch Level"
+		capability "refresh"
+		capability "Switch Level"
 		command "selDvd"
 		command "selCable"
 		command "selGame"
@@ -29,11 +29,11 @@ metadata
 		command "selAux"
 		command "selTv"
 		command "selNet"
-        command "getVolLvl"
-        command "getInSel"
+		command "getVolLvl"
+		command "getInSel"
 		command "z2on"
 		command "z2off"
-        command "setVolume"
+		command "setVolume"
 	}
 
 	simulator {
@@ -86,7 +86,7 @@ metadata
 			}
 		standardTile("refresh", "capability.refresh", width: 1, height: 1, decoration: "flat") {
 			state ("default", label:"Refresh", action:"refresh.refresh", icon:"st.secondary.refresh")
-		}            
+		}			
 		/*   Commenting this out as it doesn't work yet
 		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
 			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
@@ -114,8 +114,8 @@ def parse(desc)
 def refresh()
 {
 	sendCommand("PWRQSTN")
-    runIn(1, getVolLvl)
-    runIn(2, getInSel)
+	runIn(1, getVolLvl)
+	runIn(2, getInSel)
 }
 
 def getVolLvl()
@@ -139,23 +139,26 @@ def on()
 {
 	sendCommand("PWR01")
 	sendEvent(name:"switch", value: "on")
+	runIn(3, refresh)
 }
 
 def off()
 {
 	sendCommand("PWR00")
 	sendEvent(name:"switch", value: "off")
-    sendEvent(name:"input", value: "default")
+	sendEvent(name:"input", value: "default")
 }
 
 def mute()
 {
 	sendCommand("AMT01")
+	sendEvent(name: "switch", value "mute")
 }
 
 def unmute()
 {
 	sendCommand("AMT00")
+	sendEvent(name: "switch", value "unmute")
 }
 
 def selDvd()
@@ -220,13 +223,13 @@ def hubActionCallback(response)
 	if ( ! retstr || retstr == '' ) return
 //	log.debug("Return Str: " + retstr)
 	def bytes = retstr.decodeBase64()
-    def size = bytes.size()
-    def ofst = 0
-    while (true){
-    	if ( (ofst +18 ) > size ) {
-    	    log.debug("Return message too short " + ofst + ", " + size)
+	def size = bytes.size()
+	def ofst = 0
+	while (true){
+		if ( (ofst +18 ) > size ) {
+			log.debug("Return message too short " + ofst + ", " + size)
 			return
-        }
+		}
 		if ( bytes[ofst] != 0x49 || bytes[ofst+1] != 0x53 || bytes[ofst+2] != 0x43 || bytes[ofst+3] != 0x50){
 			log.debug("Wrong return signature header: " + bytes[ofst] + bytes[ofst+1] + bytes[ofst+2] + bytes[ofst+3])
 			return	
@@ -236,58 +239,69 @@ def hubActionCallback(response)
 			return	
 		}
 		def int len = ((bytes[ofst+8] & 0xff)<<24) + ( (bytes[ofst+9]&0xff)<<16) + ( (bytes[ofst+10]&0xff)<<8) + (bytes[ofst+11] & 0xff)
-        if ( len < 3 ) {
-        	log.debug ("Data size is too short " + len )
-            return
-        }
+		if ( len < 3 ) {
+			log.debug ("Data size is too short " + len )
+			return
+		}
 		if ( (ofst + len + 16 ) > size ) {
-    	    log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
-			return        
-        }
-        def int j = 0 
-//        log.debug("Len = " + len + ", Ofst = " + ofst)
-        for (j = ofst +len + 15 ; j > ofst+18; j--) {
-        	def tmpchar = bytes[j]
-            if ( (tmpchar != 0x1a ) && (tmpchar != 0x0d) && (tmpchar != 0x0a)) break
-        }
-        def msg = new byte[j-ofst-17]
-        for ( def i =  0; i < j-ofst-17 ; i++ ) {
-        	msg[i] = bytes[i+ofst+18]
-        }
+			log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
+			return		
+		}
+		def int j = 0 
+//		log.debug("Len = " + len + ", Ofst = " + ofst)
+		for (j = ofst +len + 15 ; j > ofst+18; j--) {
+			def tmpchar = bytes[j]
+			if ( (tmpchar != 0x1a ) && (tmpchar != 0x0d) && (tmpchar != 0x0a)) break
+		}
+		def msg = new byte[j-ofst-17]
+		for ( def i =  0; i < j-ofst-17 ; i++ ) {
+			msg[i] = bytes[i+ofst+18]
+		}
 		def cmdstr = new String(msg)
 //		log.debug("Recved: " + cmdstr)
-        switch (cmdstr ) {
-            case "NLSC-P" :
-            	// don't know why rcv keep sending this, ignore it
-                break
-        	case "PWR00" :
-            	sendEvent(name:"switch", value: "off")
-                break
-            case "PWR01" :
-            	sendEvent(name:"switch", value: "on")
-                break
-            case ~/^MVL.*/ :
-            	def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
-                sendEvent(name: "level", value: lvl, isStateChange: true)
-                break
-            default :
-            	log.debug("Ignored cmd: " + cmdstr)
-                break
-        }
-        ofst += len + 16
-//        log.debug ("new offset" + ofst)
-        if ( ofst >= size ) break
+		switch (cmdstr ) {
+			case "NLSC-P" :
+				// don't know why rcv keep sending this, ignore it
+				break
+			case "PWR00" :
+				sendEvent(name:"switch", value: "off")
+				break
+			case "PWR01" :
+				sendEvent(name:"switch", value: "on")
+				break
+			case "SLI10" :
+				sendEvent(name: "input", value: "dvd" )
+				break
+			case "SLI01" :
+				sendEvent(name: "input", value: "cable" )
+				break
+			case "SLI02" :
+				sendEvent(name: "input", value: "game" )
+				break
+			case "SLI05" :
+				sendEvent(name: "input", value: "pc" )
+				break
+			case "SLI03" :
+				sendEvent(name: "input", value: "aux" )
+				break
+			case "SLI23" :
+				sendEvent(name: "input", value: "tv" )
+				break
+			case "SLI2B" :
+				sendEvent(name: "input", value: "net" )
+				break
+			case ~/^MVL.*/ :
+				def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
+				sendEvent(name: "level", value: lvl, isStateChange: true)
+				break
+			default :
+				log.debug("Ignored cmd: " + cmdstr)
+				break
+		}
+		ofst += len + 16
+//		log.debug ("new offset" + ofst)
+		if ( ofst >= size ) break
 	}
-/*
-	if ( bytes.size() < 21 ) {
-		
-	}
-	def int len = bytes[11] - 3
-	def cmdbytes = new byte[len]
-	for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
-	def cmdstr = new String(cmdbytes)
-	log.debug("Return CMD: " + cmdstr)
-*/
 }
 
 
