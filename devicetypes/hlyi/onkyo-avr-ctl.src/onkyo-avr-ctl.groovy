@@ -57,14 +57,14 @@ metadata
 		standardTile("aux", "device.switch", decoration: "flat"){
 			state "aux", label: 'aux', action: "aux", icon:"st.Electronics.electronics6"
 			}
-		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..70)") {
+		controlTile("levelSliderControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..80)") {
 			state "level", label:'${currentValue}', action:"setLevel", backgroundColor:"#ffffff"
 			}
 		standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state "off", label:"Enable Zone 2", action:"z2on", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"on"
 			state "on", label:"Disable Zone 2", action:"z2off", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"off"
 			}
-		/*   Commenting this out as it doesn't work yet     
+		/*   Commenting this out as it doesn't work yet
 		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
 			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
 			}
@@ -91,14 +91,12 @@ def parse(desc)
 def on()
 {
 	sendCommand("PWR01")
-    sendCommand("PWRQSTN")
 	sendEvent(name:"switch", value: "on")
 }
 
 def off()
 {
 	sendCommand("PWR00")
-	sendCommand("PWRQSTN")
 	sendEvent(name:"switch", value: "off")
 }
 
@@ -124,34 +122,24 @@ def hubActionCallback(response)
 	def retstr = response?.body
 	if ( retstr == '' ) return
 	log.debug("Return Str: " + retstr)
-    def bytes = retstr.decodeBase64()
-    if ( bytes.size() < 21 ) {
-    	log.debug("Return message too short " + bytes.size())
-        return
+	def bytes = retstr.decodeBase64()
+	if ( bytes.size() < 21 ) {
+		log.debug("Return message too short " + bytes.size())
+		return
 	}
-    if ( bytes[0] != 0x49 || bytes[1] != 0x53 || bytes[2] != 0x43 || bytes[3] != 0x50){
-    	log.debug("Wrong return signature header: " + bytes[0] + bytes[1] + bytes[2] + bytes[3])
+	if ( bytes[0] != 0x49 || bytes[1] != 0x53 || bytes[2] != 0x43 || bytes[3] != 0x50){
+		log.debug("Wrong return signature header: " + bytes[0] + bytes[1] + bytes[2] + bytes[3])
 		return	
 	}
-    if ( bytes[16] != 0x21 || bytes[17] != 0x31){
-    	log.debug("Wrong return signature command: " + bytes[16] + bytes[17])
+	if ( bytes[16] != 0x21 || bytes[17] != 0x31){
+		log.debug("Wrong return signature command: " + bytes[16] + bytes[17])
 		return	
 	}
-    def int len = bytes[11] - 3
-    def cmdbytes = new byte[len]
-    for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
-    def cmdstr = new String(cmdbytes)
-    log.debug("Return CMD: " + cmdstr)
-/*
-	def jsp = new groovy.json.JsonSlurper().parseText(retstr)
-	def state = jsp.system?.get_sysinfo?.relay_state
-	if ( state == 1 || state == 0 ){
-		status = "on"
-		if ( state == 0 ) status = "off"
-		sendEvent(name: "switch", value: status, isStateChange: true)
-//		log.debug("Send event " + status)
-	}
-*/
+	def int len = bytes[11] - 3
+	def cmdbytes = new byte[len]
+	for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
+	def cmdstr = new String(cmdbytes)
+	log.debug("Return CMD: " + cmdstr)
 }
 
 
@@ -162,9 +150,9 @@ private sendCommand(cmd)
 
 private buildCommand(cmd)
 {
-    def eofstr = new byte[2]
+	def eofstr = new byte[2]
 	eofstr[0] = 0x0d
-    eofstr[1] = 0x0a
+	eofstr[1] = 0x0a
 	def datlen = cmd.length() + eofstr.size() + 2
 	def cmdbuf = new byte[datlen+16]
 	def len = 0x10
@@ -190,7 +178,7 @@ private buildCommand(cmd)
 	def strbytes = cmd.getBytes()
 	for (def i= 0; i < strbytes.size();i++) cmdbuf[idx++] = strbytes[i]
 	for (def i= 0; i < eofstr.size(); i++) cmdbuf[idx++] = eofstr[i]
-    
+
 //	log.debug ("ECODE: " + cmdbuf.collect{ String.format('%02x', it )}.join(',') )
 	return cmdbuf.encodeBase64()
 }
@@ -207,8 +195,8 @@ private sendCommandToAvr(command)
 	headers.put("HOST", "$bridgeIP:$bridgePort")	
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
-    headers.put("x-srtb-timeout", ".2")
-    headers.put("x-srtb-repeat", 5)
+	headers.put("x-srtb-timeout", ".2")
+	headers.put("x-srtb-repeat", 5)
 	headers.put("x-srtb-data", command)
 	try {
 		sendHubCommand(new physicalgraph.device.HubAction([
