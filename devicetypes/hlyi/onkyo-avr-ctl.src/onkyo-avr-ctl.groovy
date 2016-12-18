@@ -40,7 +40,7 @@ metadata
 			}
 		standardTile("mute", "device.switch", inactiveLabel: false, decoration: "flat") {
 			state "unmuted", label:"mute", action:"mute", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"muted"
-			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"unmuted"
+			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#f6ef04", nextState:"unmuted"
 			}
 		standardTile("cable", "device.switch", decoration: "flat"){
 			state "cable", label: 'cable', action: "cable", icon:"st.Electronics.electronics3"
@@ -91,13 +91,25 @@ def parse(desc)
 def on()
 {
 	sendCommand("PWR01")
+    sendCommand("PWRQSTN")
 	sendEvent(name:"switch", value: "on")
 }
 
 def off()
 {
 	sendCommand("PWR00")
+	sendCommand("PWRQSTN")
 	sendEvent(name:"switch", value: "off")
+}
+
+def mute()
+{
+	sendCommand("AMT01")
+}
+
+def unmute()
+{
+	sendCommand("AMT00")
 }
 
 def hubActionCallback(response)
@@ -112,6 +124,24 @@ def hubActionCallback(response)
 	def retstr = response?.body
 	if ( retstr == '' ) return
 	log.debug("Return Str: " + retstr)
+    def bytes = retstr.decodeBase64()
+    if ( bytes.size() < 21 ) {
+    	log.debug("Return message too short " + bytes.size())
+        return
+	}
+    if ( bytes[0] != 0x49 || bytes[1] != 0x53 || bytes[2] != 0x43 || bytes[3] != 0x50){
+    	log.debug("Wrong return signature header: " + bytes[0] + bytes[1] + bytes[2] + bytes[3])
+		return	
+	}
+    if ( bytes[16] != 0x21 || bytes[17] != 0x31){
+    	log.debug("Wrong return signature command: " + bytes[16] + bytes[17])
+		return	
+	}
+    def int len = bytes[11] - 3
+    def cmdbytes = new byte[len]
+    for (def i = 0 ; i < len; i++) cmdbytes[i] = bytes[18+i]
+    def cmdstr = new String(cmdbytes)
+    log.debug("Return CMD: " + cmdstr)
 /*
 	def jsp = new groovy.json.JsonSlurper().parseText(retstr)
 	def state = jsp.system?.get_sysinfo?.relay_state
@@ -132,7 +162,11 @@ private sendCommand(cmd)
 
 private buildCommand(cmd)
 {
-	def cmdbuf = new byte[cmd.length()+20]
+    def eofstr = new byte[2]
+	eofstr[0] = 0x0d
+    eofstr[1] = 0x0a
+	def datlen = cmd.length() + eofstr.size() + 2
+	def cmdbuf = new byte[datlen+16]
 	def len = 0x10
 	def int idx = 0
 	cmdbuf[idx++] = 0x49 // 'I'
@@ -143,22 +177,20 @@ private buildCommand(cmd)
 	cmdbuf[idx++] = (len>>16 ) & 0xff
 	cmdbuf[idx++] = (len>>8 ) & 0xff
 	cmdbuf[idx++] = len & 0xff
-	len = cmd.length() + 3
-	cmdbuf[idx++] = len >>24
-	cmdbuf[idx++] = (len>>16 ) & 0xff
-	cmdbuf[idx++] = (len>>8 ) & 0xff
-	cmdbuf[idx++] = len & 0xff
+	cmdbuf[idx++] = datlen >>24
+	cmdbuf[idx++] = (datlen>>16 ) & 0xff
+	cmdbuf[idx++] = (datlen>>8 ) & 0xff
+	cmdbuf[idx++] = datlen & 0xff
 	cmdbuf[idx++] = 1
 	cmdbuf[idx++] = 0
 	cmdbuf[idx++] = 0
 	cmdbuf[idx++] = 0
 	cmdbuf[idx++] = 0x21 //	'!'
 	cmdbuf[idx++] = 0x31 //	'1'
-
 	def strbytes = cmd.getBytes()
 	for (def i= 0; i < strbytes.size();i++) cmdbuf[idx++] = strbytes[i]
-	cmdbuf[idx++] = 0x0d
-	cmdbuf[idx++] = 0x0a
+	for (def i= 0; i < eofstr.size(); i++) cmdbuf[idx++] = eofstr[i]
+    
 //	log.debug ("ECODE: " + cmdbuf.collect{ String.format('%02x', it )}.join(',') )
 	return cmdbuf.encodeBase64()
 }
@@ -175,6 +207,8 @@ private sendCommandToAvr(command)
 	headers.put("HOST", "$bridgeIP:$bridgePort")	
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
+    headers.put("x-srtb-timeout", ".2")
+    headers.put("x-srtb-repeat", 5)
 	headers.put("x-srtb-data", command)
 	try {
 		sendHubCommand(new physicalgraph.device.HubAction([
