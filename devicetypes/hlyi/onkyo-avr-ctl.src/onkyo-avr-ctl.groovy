@@ -31,62 +31,76 @@ metadata
 		command "selNet"
 		command "getVolLvl"
 		command "getInSel"
+        command "selTunAm"
+        command "selTunFm"
 		command "z2on"
 		command "z2off"
 		command "setVolume"
+        command "tunFreqUp"
+        command "tunFreqDown"
 	}
 
 	simulator {
 		// TODO: define status and reply messages here
 	}
 
-	tiles {
-		standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
+	tiles (scale: 2) {
+		standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
 			state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
 			state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
 			}
-		standardTile("mute", "device.switch", inactiveLabel: false, decoration: "flat") {
+		standardTile("mute", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
 			state "unmuted", label:"mute", action:"mute", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"muted"
 			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#f6ef04", nextState:"unmuted"
 			}
-		standardTile("dvd", "device.input", decoration: "flat"){
+		standardTile("dvd", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "dvd", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#04eff6"
 			state "default", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("cable", "device.input", decoration: "flat"){
+		standardTile("cable", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "cable", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
 			state "default", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("game", "device.input", decoration: "flat"){
+		standardTile("game", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "game", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
 			state "default", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("pc", "device.input", decoration: "flat"){
+		standardTile("pc", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "pc", label: 'pc', action: "selPc", icon:"st.Electronics.electronics18", backgroundColor:"#04eff6"
 			state "default", label: 'pc', action: "selPc", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("aux", "device.input", decoration: "flat"){
+		standardTile("aux", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "aux", label: 'aux', action: "selAux", icon:"st.Electronics.electronics6", backgroundColor:"#04eff6"
 			state "default", label: 'aux', action: "selAux", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("tv", "device.input", decoration: "flat"){
+		standardTile("tv", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "tv", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#04eff6"
 			state "default", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
 			}
-		standardTile("net", "device.input", decoration: "flat"){
+		standardTile("net", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "net", label: 'net', action: "selNet", icon:"st.Electronics.electronics2", backgroundColor:"#04eff6"
 			state "default", label: 'net', action: "selNet", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
 			}
-		controlTile("volumeControl", "device.level", "slider", height: 1, width: 2, inactiveLabel: false, range:"(0..80)") {
+		controlTile("volumeControl", "device.level", "slider", height: 2, width: 4, inactiveLabel: false, range:"(0..80)") {
 			state "level", label:'${currentValue}', action:"switch level.setLevel", backgroundColor:"#ffffff"
 			}
-		standardTile("zone2", "device.switch", inactiveLabel: false, decoration: "flat") {
+		standardTile("zone2", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
 			state "off", label:"Enable Zone 2", action:"z2on", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"on"
 			state "on", label:"Disable Zone 2", action:"z2off", icon:"st.custom.sonos.muted", backgroundColor:"#ffffff", nextState:"off"
 			}
-		standardTile("refresh", "capability.refresh", width: 1, height: 1, decoration: "flat") {
+		standardTile("refresh", "capability.refresh", width: 2, height: 2, decoration: "flat") {
 			state ("default", label:"Refresh", action:"refresh.refresh", icon:"st.secondary.refresh")
-		}			
+		}
+		multiAttributeTile(name:"tuner", type:"generic", width:6, height:4) {
+   			tileAttribute("device.tunefreq", key: "PRIMARY_CONTROL") {
+    			attributeState "default", label:'${currentValue}'
+			}
+			tileAttribute("device.freq", key: "VALUE_CONTROL") {
+				attributeState "VALUE_UP", action: "tunFreqUp"
+				attributeState "VALUE_DOWN", action: "tunFreqDown"
+			}
+		}
+       
 		/*   Commenting this out as it doesn't work yet
 		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
 			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
@@ -96,7 +110,7 @@ metadata
 
 	
 	main "switch"
-	details(["switch","volumeControl", "refresh", "mute","dvd","cable","game","pc","aux","tv", "net","zone2"])
+	details(["switch","volumeControl", "tuner", "mute","dvd","cable","game","pc","aux","tv", "net", "refresh", "zone2"])
 }
 
 preferences
@@ -116,6 +130,16 @@ def refresh()
 	sendCommand("PWRQSTN")
 	runIn(1, getVolLvl)
 	runIn(2, getInSel)
+}
+
+def tunFreqUp()
+{
+	sendCommand("PRSUP")
+}
+
+def tunFreqDown()
+{
+	sendCommand("PRSDOWN")
 }
 
 def getVolLvl()
@@ -159,6 +183,18 @@ def unmute()
 {
 	sendCommand("AMT00")
 	sendEvent(name: "switch", value: "unmute")
+}
+
+def selTunAm()
+{
+	sendCommand("SLI25")
+	sendEvent(name:"input", value: "tunam" )
+}
+
+def selTunFm()
+{
+	sendCommand("SLI24")
+	sendEvent(name:"input", value: "tunfm" )
 }
 
 def selDvd()
@@ -289,6 +325,12 @@ def hubActionCallback(response)
 				break
 			case "SLI2B" :
 				sendEvent(name: "input", value: "net" )
+				break
+			case "SLI24" :
+				sendEvent(name: "input", value: "tunfm" )
+				break
+			case "SLI25" :
+				sendEvent(name: "input", value: "tunam" )
 				break
 			case ~/^MVL.*/ :
 				def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
