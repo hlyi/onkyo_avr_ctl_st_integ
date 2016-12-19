@@ -33,6 +33,7 @@ metadata
 		command "getInSel"
         command "selTunAm"
         command "selTunFm"
+        command "getTunFreq"
 		command "z2on"
 		command "z2off"
 		command "setVolume"
@@ -93,22 +94,18 @@ metadata
 		}
 		multiAttributeTile(name:"tuner", type:"generic", width:6, height:4) {
    			tileAttribute("device.tunefreq", key: "PRIMARY_CONTROL") {
-    			attributeState "default", label:'${currentValue}'
+            	attributeState "am", label: '${currentValue} kHz', backgroundColor: "#04eff6", action:"selTunFm"
+            	attributeState "fm", label: '${currentValue} MHz', backgroundColor: "#f61004", action:"selTunAm"                
+    			attributeState "default", label:'${currentValue}', backgroundColor:"#ffffff"
 			}
 			tileAttribute("device.freq", key: "VALUE_CONTROL") {
 				attributeState "VALUE_UP", action: "tunFreqUp"
 				attributeState "VALUE_DOWN", action: "tunFreqDown"
 			}
 		}
-       
-		/*   Commenting this out as it doesn't work yet
-		valueTile("currentSong", "device.trackDescription", inactiveLabel: true, height:1, width:3, decoration: "flat") {
-			state "default", label:'${currentValue}', backgroundColor:"#ffffff"
-			}
-		*/
+
 	}
 
-	
 	main "switch"
 	details(["switch","volumeControl", "tuner", "mute","dvd","cable","game","pc","aux","tv", "net", "refresh", "zone2"])
 }
@@ -135,11 +132,13 @@ def refresh()
 def tunFreqUp()
 {
 	sendCommand("PRSUP")
+    runIn(1,getTunFreq)
 }
 
 def tunFreqDown()
 {
 	sendCommand("PRSDOWN")
+    runIn(1,getTunFreq)
 }
 
 def getVolLvl()
@@ -150,6 +149,11 @@ def getVolLvl()
 def getInSel()
 {
 	sendCommand("SLIQSTN")
+}
+
+def getTunFreq()
+{
+	sendCommand("TUNQSTN")
 }
 
 def setLevel (lvl)
@@ -189,12 +193,14 @@ def selTunAm()
 {
 	sendCommand("SLI25")
 	sendEvent(name:"input", value: "tunam" )
+    runIn(1, getTunFreq)
 }
 
 def selTunFm()
 {
 	sendCommand("SLI24")
 	sendEvent(name:"input", value: "tunfm" )
+    runIn(1, getTunFreq)
 }
 
 def selDvd()
@@ -336,6 +342,16 @@ def hubActionCallback(response)
 				def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
 				sendEvent(name: "level", value: lvl, isStateChange: true)
 				break
+            case ~/^TUN\d+/ :
+            	def freq = Integer.parseInt(cmdstr.substring(3,8))
+                if ( freq < 2000 ) {
+                	log.debug("AM set to " + freq)
+            	    sendEvent(name: "tunefreq", value: freq, unit: "kHz")
+                 }else{
+                	def freqdisp = ''.format("%6.2f",freq/100.0)
+                    log.debug("FM set to " + freqdisp)
+                    sendEvent(name: "tunefreq", value: freqdisp, unit: "MHz" )
+                }
 			default :
 				log.debug("Ignored cmd: " + cmdstr)
 				break
