@@ -31,14 +31,14 @@ metadata
 		command "selNet"
 		command "getVolLvl"
 		command "getInSel"
-        command "selTunAm"
-        command "selTunFm"
-        command "getTunFreq"
+		command "selTunAm"
+		command "selTunFm"
+		command "getTunFreq"
 		command "z2on"
 		command "z2off"
 		command "setVolume"
-        command "tunFreqUp"
-        command "tunFreqDown"
+		command "tunFreqUp"
+		command "tunFreqDown"
 	}
 
 	simulator {
@@ -94,9 +94,9 @@ metadata
 		}
 		multiAttributeTile(name:"tuner", type:"generic", width:6, height:4) {
    			tileAttribute("device.tunefreq", key: "PRIMARY_CONTROL") {
-            	attributeState "am", label: '${currentValue} kHz', backgroundColor: "#04eff6", action:"selTunFm"
-            	attributeState "fm", label: '${currentValue} MHz', backgroundColor: "#f61004", action:"selTunAm"                
-    			attributeState "default", label:'${currentValue}', backgroundColor:"#ffffff"
+				attributeState "am", label: '${currentValue} kHz', backgroundColor: "#04eff6", action:"selTunFm"
+				attributeState "fm", label: '${currentValue} MHz', backgroundColor: "#f61004", action:"selTunAm"
+				attributeState "default", label:'${currentValue}', backgroundColor:"#ffffff"
 			}
 			tileAttribute("device.freq", key: "VALUE_CONTROL") {
 				attributeState "VALUE_UP", action: "tunFreqUp"
@@ -132,13 +132,13 @@ def refresh()
 def tunFreqUp()
 {
 	sendCommand("PRSUP")
-    runIn(1,getTunFreq)
+	runIn(1,getTunFreq)
 }
 
 def tunFreqDown()
 {
 	sendCommand("PRSDOWN")
-    runIn(1,getTunFreq)
+	runIn(1,getTunFreq)
 }
 
 def getVolLvl()
@@ -193,14 +193,14 @@ def selTunAm()
 {
 	sendCommand("SLI25")
 	sendEvent(name:"input", value: "tunam" )
-    runIn(1, getTunFreq)
+	runIn(1, getTunFreq)
 }
 
 def selTunFm()
 {
 	sendCommand("SLI24")
 	sendEvent(name:"input", value: "tunfm" )
-    runIn(1, getTunFreq)
+	runIn(1, getTunFreq)
 }
 
 def selDvd()
@@ -255,7 +255,7 @@ def selNet()
 def hubActionCallback(response)
 {
 //	log.debug(response)
-	
+
 	def status = response?.headers["x-srtb-status"] ?: ""
 	if (status != "Ok") {
 		log.debug("Reponse error: " + status)
@@ -274,11 +274,11 @@ def hubActionCallback(response)
 		}
 		if ( bytes[ofst] != 0x49 || bytes[ofst+1] != 0x53 || bytes[ofst+2] != 0x43 || bytes[ofst+3] != 0x50){
 			log.debug("Wrong return signature header: " + bytes[ofst] + bytes[ofst+1] + bytes[ofst+2] + bytes[ofst+3])
-			return	
+			return
 		}
 		if ( bytes[ofst+16] != 0x21 || bytes[ofst+17] != 0x31){
 			log.debug("Wrong return signature command: " + bytes[ofst+16] + bytes[ofst+17])
-			return	
+			return
 		}
 		def int len = ((bytes[ofst+8] & 0xff)<<24) + ( (bytes[ofst+9]&0xff)<<16) + ( (bytes[ofst+10]&0xff)<<8) + (bytes[ofst+11] & 0xff)
 		if ( len < 3 ) {
@@ -287,7 +287,7 @@ def hubActionCallback(response)
 		}
 		if ( (ofst + len + 16 ) > size ) {
 			log.debug("Return message no enough dat " + ofst + ", " + len + ", " + size)
-			return		
+			return
 		}
 		def int j = 0 
 //		log.debug("Len = " + len + ", Ofst = " + ofst)
@@ -342,16 +342,16 @@ def hubActionCallback(response)
 				def lvl = Integer.parseInt(cmdstr.substring(3,5),16)
 				sendEvent(name: "level", value: lvl, isStateChange: true)
 				break
-            case ~/^TUN\d+/ :
-            	def freq = Integer.parseInt(cmdstr.substring(3,8))
-                if ( freq < 2000 ) {
-                	log.debug("AM set to " + freq)
-            	    sendEvent(name: "tunefreq", value: freq, unit: "kHz")
-                 }else{
-                	def freqdisp = ''.format("%6.2f",freq/100.0)
-                    log.debug("FM set to " + freqdisp)
-                    sendEvent(name: "tunefreq", value: freqdisp, unit: "MHz" )
-                }
+			case ~/^TUN\d+/ :
+				def freq = Integer.parseInt(cmdstr.substring(3,8))
+				if ( freq < 2000 ) {
+					log.debug("AM set to " + freq)
+					sendEvent(name: "tunefreq", value: freq, unit: "kHz")
+				 }else{
+					def freqdisp = ''.format("%6.2f",freq/100.0)
+					log.debug("FM set to " + freqdisp)
+					sendEvent(name: "tunefreq", value: freqdisp, unit: "MHz" )
+				}
 			default :
 				log.debug("Ignored cmd: " + cmdstr)
 				break
@@ -410,9 +410,9 @@ private sendCommandToAvr(command)
 	def bridgeIPHex = convertIPtoHex(bridgeIP)
 	def bridgePortHex = convertPortToHex(bridgePort)
 	def deviceNetworkId = "$bridgeIPHex:$bridgePortHex"
-	
+
 	def headers = [:] 
-	headers.put("HOST", "$bridgeIP:$bridgePort")	
+	headers.put("HOST", "$bridgeIP:$bridgePort")
 	headers.put("x-srtb-ip", avrIP)
 	headers.put("x-srtb-port", '60128')
 	headers.put("x-srtb-timeout", ".1")
