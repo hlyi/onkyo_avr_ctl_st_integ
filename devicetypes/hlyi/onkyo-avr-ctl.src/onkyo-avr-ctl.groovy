@@ -47,24 +47,24 @@ metadata
 
 	tiles (scale: 2) {
 		standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
-			state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
-			state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
+			state "on", label: '${name}', action: "switch.off", icon: "st.Electronics.electronics19", backgroundColor: "#79b821"
+			state "off", label: '${name}', action: "switch.on", icon: "st.Electronics.electronics19", backgroundColor: "#ffffff"
 			}
 		standardTile("mute", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
 			state "unmuted", label:"mute", action:"mute", icon:"st.custom.sonos.unmuted", backgroundColor:"#ffffff", nextState:"muted"
 			state "muted", label:"unmute", action:"unmute", icon:"st.custom.sonos.muted", backgroundColor:"#f6ef04", nextState:"unmuted"
 			}
 		standardTile("dvd", "device.input", width: 2, height: 2, decoration: "flat"){
-			state "dvd", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#04eff6"
-			state "default", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics5", backgroundColor:"#ffffff", defaultState: true
+			state "dvd", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics1", backgroundColor:"#04eff6"
+			state "default", label: 'dvd', action: "selDvd", icon:"st.Electronics.electronics1", backgroundColor:"#ffffff", defaultState: true
 			}
 		standardTile("cable", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "cable", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
 			state "default", label: 'cable', action: "selCable", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
 			}
 		standardTile("game", "device.input", width: 2, height: 2, decoration: "flat"){
-			state "game", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#04eff6"
-			state "default", label: 'game', action: "selGame", icon:"st.Electronics.electronics3", backgroundColor:"#ffffff", defaultState: true
+			state "game", label: 'game', action: "selGame", icon:"st.Electronics.electronics5", backgroundColor:"#04eff6"
+			state "default", label: 'game', action: "selGame", icon:"st.Electronics.electronics5", backgroundColor:"#ffffff", defaultState: true
 			}
 		standardTile("pc", "device.input", width: 2, height: 2, decoration: "flat"){
 			state "pc", label: 'pc', action: "selPc", icon:"st.Electronics.electronics18", backgroundColor:"#04eff6"
@@ -75,12 +75,12 @@ metadata
 			state "default", label: 'aux', action: "selAux", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
 			}
 		standardTile("tv", "device.input", width: 2, height: 2, decoration: "flat"){
-			state "tv", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#04eff6"
-			state "default", label: 'tv', action: "selTv", icon:"st.Electronics.electronics6", backgroundColor:"#ffffff", defaultState: true
+			state "tv", label: 'tv', action: "selTv", icon:"st.Electronics.electronics15", backgroundColor:"#04eff6"
+			state "default", label: 'tv', action: "selTv", icon:"st.Electronics.electronics15", backgroundColor:"#ffffff", defaultState: true
 			}
 		standardTile("net", "device.input", width: 2, height: 2, decoration: "flat"){
-			state "net", label: 'net', action: "selNet", icon:"st.Electronics.electronics2", backgroundColor:"#04eff6"
-			state "default", label: 'net', action: "selNet", icon:"st.Electronics.electronics18", backgroundColor:"#ffffff", defaultState: true
+			state "net", label: 'net', action: "selNet", icon:"st.Office.office5", backgroundColor:"#04eff6"
+			state "default", label: 'net', action: "selNet", icon:"st.Office.office5", backgroundColor:"#ffffff", defaultState: true
 			}
 		controlTile("volumeControl", "device.level", "slider", height: 2, width: 4, inactiveLabel: false, range:"(0..80)") {
 			state "level", label:'${currentValue}', action:"switch level.setLevel", backgroundColor:"#ffffff"
